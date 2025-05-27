@@ -18,21 +18,12 @@
 
 typedef struct addrinfo addrinfo;
 
-int main(int argc, char* argv[])
+static int setup_client(char* server_addr, addrinfo** result)
 {
-   if (argc != 2) {
-      printf("usage: %s server-name\n", argv[0]);
-      return 1;
-   }
-
-   int iResult;
-
-   struct addrinfo* result = NULL;
-
    WSADATA wsaData;
-   iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
-   if (iResult != 0) {
-      printf("WSAStartup failed with error: %d\n", iResult);
+   int error = WSAStartup(MAKEWORD(2, 2), &wsaData);
+   if (error != 0) {
+      printf("WSAStartup failed with error: %d\n", error);
       return 1;
    }
 
@@ -43,13 +34,17 @@ int main(int argc, char* argv[])
    hints.ai_protocol = IPPROTO_TCP;
 
    // Resolve the server address and port
-   iResult = getaddrinfo(argv[1], DEFAULT_PORT, &hints, &result);
-   if (iResult != 0) {
-      printf("getaddrinfo failed with error: %d\n", iResult);
+   error = getaddrinfo(server_addr, DEFAULT_PORT, &hints, result);
+   if (error != 0) {
+      printf("getaddrinfo failed with error: %d\n", error);
       WSACleanup();
       return 1;
    }
+   return error;
+}
 
+static SOCKET connect_to_server(addrinfo* result)
+{
    SOCKET connectSocket = INVALID_SOCKET;
    addrinfo* ptr = NULL;
    for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {
@@ -57,11 +52,10 @@ int main(int argc, char* argv[])
       if (!connectSocket) {
          printf("socket failed with error: %ld\n", WSAGetLastError());
          WSACleanup();
-         return 1;
+         return INVALID_SOCKET;
       }
 
-      iResult = connect(connectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
-      if (iResult == SOCKET_ERROR) {
+      if (connect(connectSocket, ptr->ai_addr, (int)ptr->ai_addrlen) == SOCKET_ERROR) {
          closesocket(connectSocket);
          connectSocket = INVALID_SOCKET;
          continue;
@@ -69,16 +63,36 @@ int main(int argc, char* argv[])
       break;
    }
 
-   freeaddrinfo(result);
-
    if (!connectSocket) {
       printf("Unable to connect to server!\n");
       WSACleanup();
+   }
+   return connectSocket;
+}
+
+int main(int argc, char* argv[])
+{
+   if (argc != 2) {
+      printf("usage: %s server-name\n", argv[0]);
+      return 1;
+   }
+
+   addrinfo* result = NULL;
+   if (setup_client(argv[1], &result))
+   {
+      return 1;
+   }
+   
+   SOCKET connectSocket = connect_to_server(result);
+   freeaddrinfo(result);
+   
+   if (!connectSocket)
+   {
       return 1;
    }
 
    const char* sendbuf = "this is a test";
-   iResult = send(connectSocket, sendbuf, (int)strlen(sendbuf), 0);
+   int iResult = send(connectSocket, sendbuf, (int)strlen(sendbuf), 0);
    if (iResult == SOCKET_ERROR) {
       printf("send failed with error: %d\n", WSAGetLastError());
       closesocket(connectSocket);
@@ -90,18 +104,18 @@ int main(int argc, char* argv[])
    // while the peer doesn't close the connection
    do {
 
-      iResult = recv(connectSocket, recvbuf, DEFAULT_BUFLEN, 0);
-      if (iResult > 0)
-         printf("Bytes received: %d\n", iResult);
-      else if (iResult == 0)
+      iResult  = recv(connectSocket, recvbuf, DEFAULT_BUFLEN, 0);
+      if (iResult  > 0)
+         printf("Bytes received: %d\n", iResult );
+      else if (iResult  == 0)
          printf("Connection closed\n");
       else
          printf("recv failed with error: %d\n", WSAGetLastError());
 
-   } while (1);
+   } while (iResult  != 0);
 
-   iResult = shutdown(connectSocket, SD_SEND);
-   if (iResult == SOCKET_ERROR) {
+   iResult  = shutdown(connectSocket, SD_SEND);
+   if (iResult  == SOCKET_ERROR) {
       printf("shutdown failed with error: %d\n", WSAGetLastError());
       closesocket(connectSocket);
       WSACleanup();

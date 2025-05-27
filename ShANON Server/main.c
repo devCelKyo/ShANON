@@ -64,18 +64,17 @@ static int create_listen_socket(addrinfo* serverAdressInfo, SOCKET* listenSocket
 static int handle_client(SOCKET clientSocket)
 {
    char recvbuf[DEFAULT_BUFLEN];
-   int error = recv(clientSocket, recvbuf, DEFAULT_BUFLEN, 0);
-   printf(recvbuf);
+   int bytes = recv(clientSocket, recvbuf, DEFAULT_BUFLEN, 0);
+   printf("%.*s\n", bytes, recvbuf);
 
    // Echo the buffer back to the sender
-   int iSendResult = send(clientSocket, recvbuf, error, 0);
+   int iSendResult = send(clientSocket, recvbuf, bytes, 0);
    if (iSendResult == SOCKET_ERROR) {
       printf("send failed with error: %d\n", WSAGetLastError());
       closesocket(clientSocket);
       WSACleanup();
       return 1;
    }
-   printf(recvbuf);
    return 0;
 }
 
@@ -112,6 +111,7 @@ int main()
          return 1;
       }
 
+      // blocking
       if (handle_client(clientSocket) != 0)
       {
          return 1;
