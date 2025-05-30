@@ -91,28 +91,18 @@ int main(int argc, char* argv[])
       return 1;
    }
 
-   const char* sendbuf = "this is a test";
-   int iResult = send(connectSocket, sendbuf, (int)strlen(sendbuf), 0);
-   if (iResult == SOCKET_ERROR) {
-      printf("send failed with error: %d\n", WSAGetLastError());
-      closesocket(connectSocket);
-      WSACleanup();
-      return 1;
-   }
+   printf("Now connected to server. \n");
 
-   char recvbuf[DEFAULT_BUFLEN];
-   // while the peer doesn't close the connection
-   do {
-
-      iResult  = recv(connectSocket, recvbuf, DEFAULT_BUFLEN, 0);
-      if (iResult  > 0)
-         printf("Bytes received: %d\n", iResult );
-      else if (iResult  == 0)
-         printf("Connection closed\n");
-      else
-         printf("recv failed with error: %d\n", WSAGetLastError());
-
-   } while (iResult  != 0);
+   int iResult;
+   char txt[50];
+   char recvBuffer[DEFAULT_BUFLEN];
+   do
+   {
+      printf("Your message: ");
+      fgets(txt, sizeof(txt), stdin);
+      iResult = send(connectSocket, txt, 50, 0);
+      iResult = recv(connectSocket, recvBuffer, DEFAULT_BUFLEN, 0);
+   } while (iResult != 0);
 
    iResult  = shutdown(connectSocket, SD_SEND);
    if (iResult  == SOCKET_ERROR) {
