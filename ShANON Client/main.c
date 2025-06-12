@@ -43,7 +43,7 @@ static int setup_client(char* server_addr, addrinfo** result)
    return error;
 }
 
-static SOCKET connect_to_server(addrinfo* result)
+static SOCKET connect_to_server(addrinfo* result, char* username)
 {
    SOCKET connectSocket = INVALID_SOCKET;
    addrinfo* ptr = NULL;
@@ -67,15 +67,30 @@ static SOCKET connect_to_server(addrinfo* result)
       printf("Unable to connect to server!\n");
       WSACleanup();
    }
+
+   int iResult = send(connectSocket, username, (int)strlen(username), 0);
+   if (!iResult) {
+      printf("Unable to connect to server!\n");
+      WSACleanup();
+   }
    return connectSocket;
 }
 
 int main(int argc, char* argv[])
 {
+   char serverIp[16];
    if (argc != 2) {
-      printf("usage: %s server-name\n", argv[0]);
-      return 1;
+      printf("Server address: ");
+      fgets(serverIp, sizeof(serverIp), stdin);
    }
+   else
+   {
+      strcpy_s(serverIp, 16, argv[1]);
+   }
+
+   char username[20];
+   printf("Username: ");
+   fgets(username, sizeof(username), stdin);
 
    addrinfo* result = NULL;
    if (setup_client(argv[1], &result))
@@ -83,7 +98,7 @@ int main(int argc, char* argv[])
       return 1;
    }
    
-   SOCKET connectSocket = connect_to_server(result);
+   SOCKET connectSocket = connect_to_server(result, username);
    freeaddrinfo(result);
    
    if (!connectSocket)

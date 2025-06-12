@@ -31,7 +31,7 @@ static int setup_server(addrinfo** result)
    hints.ai_flags = AI_PASSIVE;
 
    // Resolve the server address and port
-   error = getaddrinfo("localhost", DEFAULT_PORT, &hints, result);
+   error = getaddrinfo("192.168.1.11", DEFAULT_PORT, &hints, result);
    if (error != 0) {
       printf("getaddrinfo failed with error: %d\n", error);
       WSACleanup();
@@ -73,6 +73,10 @@ static int handle_client(SOCKET clientSocket)
 {
    int iReturn;
    char recvbuf[DEFAULT_BUFLEN];
+   iReturn = recv(clientSocket, recvbuf, DEFAULT_BUFLEN, 0);
+
+   char username[20];
+   strncpy_s(username, iReturn, recvbuf, -1);
    do
    {
       iReturn = recv(clientSocket, recvbuf, DEFAULT_BUFLEN, 0);
@@ -96,6 +100,9 @@ static int handle_client(SOCKET clientSocket)
          return 1;
       }
 
+      printf("[00:00:00] ");
+      printf(username);
+      printf(": ");
       printf("%.*s\n", iReturn, recvbuf);
 
       int iSendResult = send(clientSocket, recvbuf, iReturn, 0);
