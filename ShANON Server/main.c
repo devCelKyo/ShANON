@@ -69,15 +69,17 @@ static void announce(char* msg)
    printf("-----------\n");
 }
 
-static int handle_client(SOCKET clientSocket)
+DWORD WINAPI handle_client_thread(LPVOID arg)
 {
+   SOCKET clientSocket = (SOCKET)arg;
    int iReturn;
    char recvbuf[DEFAULT_BUFLEN];
    iReturn = recv(clientSocket, recvbuf, DEFAULT_BUFLEN, 0);
 
    char username[20];
    strncpy_s(username, iReturn, recvbuf, -1);
-   do
+
+   while (TRUE)
    {
       iReturn = recv(clientSocket, recvbuf, DEFAULT_BUFLEN, 0);
       if (iReturn == 0)
@@ -112,8 +114,22 @@ static int handle_client(SOCKET clientSocket)
          WSACleanup();
          return 1;
       }
-   } while (iReturn != 0);
+   }
+   
+   // shutdown the connection since we're done
+   shutdown(clientSocket, SD_SEND);
+   closesocket(clientSocket);
+   
+   return 0;
+}
 
+static int handle_client(SOCKET clientSocket)
+{
+   HANDLE thread = CreateThread(NULL, 0, handle_client_thread, (LPVOID)clientSocket, 0, NULL);
+   if (!thread)
+   {
+      return 1;
+   }
    return 0;
 }
 
@@ -140,10 +156,11 @@ int main()
       return 1;
    }
 
+   announce("Now accepting a first client.");
    while (1)
    {
-      announce("Now accepting a new client.");
       SOCKET clientSocket = accept(listenSocket, NULL, NULL);
+      announce("New client.");
       if (!clientSocket) {
          printf("accept failed with error: %d\n", WSAGetLastError());
          closesocket(listenSocket);
@@ -151,15 +168,11 @@ int main()
          return 1;
       }
 
-      // blocking
+      // Opens a thread for the client
       if (handle_client(clientSocket) != 0)
       {
          return 1;
       }
-
-      // shutdown the connection since we're done
-      error = shutdown(clientSocket, SD_SEND);
-      closesocket(clientSocket);
    }
    
    // cleanup
