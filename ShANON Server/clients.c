@@ -1,3 +1,4 @@
+#ifdef PLATFORM_WINDOWS
 #include <clients.h>
 
 int client_send(Client client, char* message)
@@ -9,3 +10,6 @@ int client_receive(Client client, char* buffer, int len)
 {
    return recv(client.socket, buffer, len, 0);
 }
+
+#elif defined(PLATFORM_MAC)
+#endif

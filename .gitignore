@@ -403,3 +403,6 @@ FodyWeavers.xsd
 # VisualStudio sln files
 *.sln
 *.vcxproj*
+
+# Build stuff
+*/build/*

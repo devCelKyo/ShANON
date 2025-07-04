@@ -1,5 +1,6 @@
 #pragma once
 
+#ifdef PLATFORM_WINDOWS
 #include <winsock2.h>
 
 typedef struct Client 
@@ -13,3 +14,4 @@ int client_send(Client, char*);
 
 // Blocking
 int client_receive(Client, char* buffer, int len);
+#endif

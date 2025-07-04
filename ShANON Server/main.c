@@ -1,5 +1,6 @@
-#define WIN32_LEAN_AND_MEAN
+#ifdef PLATFORM_WINDOWS
 
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -179,4 +180,15 @@ int main()
    WSACleanup();
 
    return 0;
-} 
+}
+
+#elif defined(PLATFORM_APPLE)
+#include <stdio.h>
+
+int main()
+{
+   printf("Mac version");
+   return 0;
+}
+
+#endif
