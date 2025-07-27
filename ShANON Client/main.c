@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
    HANDLE promptThread = CreateThread(NULL, 0, message_prompt_loop, (LPVOID)connectSocket, 0, NULL);
 
    MessageArray messages = messagearray();
-   int displayedMessages = 0;
+   int messageLimit = 10;
    do
    {
       iResult = recv(connectSocket, recvBuffer, DEFAULT_BUFLEN, 0);
@@ -157,12 +157,12 @@ int main(int argc, char* argv[])
          push(&messages, m);
 
          // refreshing all the messages when receiving one
-         ++displayedMessages;
          printf("\x1B[s");
-         for (int index = 1; index <= displayedMessages; ++index)
+         int firstMessage = max((int)messages.length - messageLimit, 0);
+         for (int index = firstMessage; index < messages.length; ++index)
          {
             char* content;
-            Message* currentMessage = get(&messages, index - 1);
+            Message* currentMessage = get(&messages, index);
             if (currentMessage)
             {
                content = currentMessage->content;
@@ -171,9 +171,10 @@ int main(int argc, char* argv[])
             {
                content = "slt";
             }
-            printf("\x1B[%d;1H", index);
+            printf("\x1B[%d;1H", index - firstMessage + 1);
             printf("\x1B[2K");
-            printf("%s", content);
+            char* author = "author";
+            printf("%s: %s", author, content);
          }
          printf("\x1B[u");
       }
