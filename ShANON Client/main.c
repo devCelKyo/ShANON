@@ -76,6 +76,21 @@ static SOCKET connect_to_server(addrinfo* result, char* username)
    return connectSocket;
 }
 
+DWORD WINAPI message_prompt_loop(LPVOID arg)
+{
+   SOCKET connectSocket = (SOCKET)arg;
+   char txt[50];
+   int iResult;
+   do
+   {
+      printf("\x1B[999;1H");  // Move to row 999, column 1
+      printf("Your message: ");
+      fgets(txt, sizeof(txt), stdin);
+      iResult = send(connectSocket, txt, 50, 0);
+   } while (iResult != 0);
+   return 0;
+}
+
 int main(int argc, char* argv[])
 {
    char serverIp[16];
@@ -106,17 +121,18 @@ int main(int argc, char* argv[])
       return 1;
    }
 
+   system("cls");
    printf("Now connected to server. \n");
 
    int iResult;
-   char txt[50];
    char recvBuffer[DEFAULT_BUFLEN];
+
+   HANDLE promptThread = CreateThread(NULL, 0, message_prompt_loop, (LPVOID)connectSocket, 0, NULL);
+
    do
    {
-      printf("Your message: ");
-      fgets(txt, sizeof(txt), stdin);
-      iResult = send(connectSocket, txt, 50, 0);
       iResult = recv(connectSocket, recvBuffer, DEFAULT_BUFLEN, 0);
+      //printf("cece");
    } while (iResult != 0);
 
    iResult  = shutdown(connectSocket, SD_SEND);
