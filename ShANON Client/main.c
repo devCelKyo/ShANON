@@ -12,6 +12,7 @@
 #pragma comment (lib, "Mswsock.lib")
 #pragma comment (lib, "AdvApi32.lib")
 
+#include <message.h>
 
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "27015"
@@ -83,10 +84,13 @@ DWORD WINAPI message_prompt_loop(LPVOID arg)
    int iResult;
    do
    {
-      printf("\x1B[999;1H");  // Move to row 999, column 1
+      printf("\x1B[999;1H"); // Move to row 999, column 1
       printf("Your message: ");
       fgets(txt, sizeof(txt), stdin);
+      printf("\x1B[1A"); // move up one line
+      printf("\x1B[2K"); // clear line
       iResult = send(connectSocket, txt, 50, 0);
+
    } while (iResult != 0);
    return 0;
 }
@@ -129,10 +133,50 @@ int main(int argc, char* argv[])
 
    HANDLE promptThread = CreateThread(NULL, 0, message_prompt_loop, (LPVOID)connectSocket, 0, NULL);
 
+   MessageArray messages = messagearray();
+   int displayedMessages = 0;
    do
    {
       iResult = recv(connectSocket, recvBuffer, DEFAULT_BUFLEN, 0);
-      //printf("cece");
+      
+      // If a message was broadcasted from server
+      if (iResult > 0)
+      {
+         char* author = (char*)malloc(20 * sizeof(char));
+         if (author)
+         {
+            //strcpy_s(author, 20, recvBuffer);
+         }
+         char* content = (char*)malloc(300 * sizeof(char));
+         if (content)
+         {
+            //strcpy_s(content, 300, recvBuffer + 20);
+            strcpy_s(content, iResult, recvBuffer);
+         }
+         Message* m = create_message(author, content);
+         push(&messages, m);
+
+         // refreshing all the messages when receiving one
+         ++displayedMessages;
+         printf("\x1B[s");
+         for (int index = 1; index <= displayedMessages; ++index)
+         {
+            char* content;
+            Message* currentMessage = get(&messages, index - 1);
+            if (currentMessage)
+            {
+               content = currentMessage->content;
+            }
+            else
+            {
+               content = "slt";
+            }
+            printf("\x1B[%d;1H", index);
+            printf("\x1B[2K");
+            printf("%s", content);
+         }
+         printf("\x1B[u");
+      }
    } while (iResult != 0);
 
    iResult  = shutdown(connectSocket, SD_SEND);
