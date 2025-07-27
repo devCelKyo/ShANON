@@ -11,6 +11,8 @@
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "27015"
 
+#include <clients.h>
+
 typedef struct addrinfo addrinfo;
 
 static int setup_server(addrinfo** result)
@@ -68,15 +70,24 @@ static void announce(char* msg)
    printf("-----------\n");
 }
 
+typedef struct handle_client_ud
+{
+   SOCKET s;
+   ClientList* list;
+} handle_client_ud;
+
 DWORD WINAPI handle_client_thread(LPVOID arg)
 {
-   SOCKET clientSocket = (SOCKET)arg;
+   SOCKET clientSocket = ((handle_client_ud*)arg)->s;
+   ClientList* list = ((handle_client_ud*)arg)->list;
    int iReturn;
    char recvbuf[DEFAULT_BUFLEN];
    iReturn = recv(clientSocket, recvbuf, DEFAULT_BUFLEN, 0);
 
    char username[20];
    strncpy_s(username, iReturn, recvbuf, -1);
+
+   clientlist_push(list, client(username, clientSocket));
 
    while (TRUE)
    {
@@ -106,13 +117,15 @@ DWORD WINAPI handle_client_thread(LPVOID arg)
       printf(": ");
       printf("%.*s\n", iReturn, recvbuf);
 
-      int iSendResult = send(clientSocket, recvbuf, iReturn, 0);
+      /*int iSendResult = send(clientSocket, recvbuf, iReturn, 0);
       if (iSendResult == SOCKET_ERROR) {
          printf("send failed with error: %d\n", WSAGetLastError());
          closesocket(clientSocket);
          WSACleanup();
          return 1;
-      }
+      }*/
+
+      // broadcast message to every client
    }
    
    // shutdown the connection since we're done
@@ -122,9 +135,10 @@ DWORD WINAPI handle_client_thread(LPVOID arg)
    return 0;
 }
 
-static int handle_client(SOCKET clientSocket)
+static int handle_client(SOCKET clientSocket, ClientList* list)
 {
-   HANDLE thread = CreateThread(NULL, 0, handle_client_thread, (LPVOID)clientSocket, 0, NULL);
+   handle_client_ud ud = { clientSocket, list };
+   HANDLE thread = CreateThread(NULL, 0, handle_client_thread, (LPVOID)&ud, 0, NULL);
    if (!thread)
    {
       return 1;
@@ -155,6 +169,7 @@ int main()
       return 1;
    }
 
+   ClientList clients;
    announce("Now accepting a first client.");
    while (1)
    {
@@ -168,7 +183,7 @@ int main()
       }
 
       // Opens a thread for the client
-      if (handle_client(clientSocket) != 0)
+      if (handle_client(clientSocket, &clients) != 0)
       {
          return 1;
       }

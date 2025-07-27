@@ -56,6 +56,7 @@ static void resize(MessageArray* array, size_t size)
       }
       free(array->messages);
       array->messages = resized;
+      array->capacity = size;
    }
 }
 
