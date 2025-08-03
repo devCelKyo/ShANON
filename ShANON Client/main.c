@@ -162,6 +162,7 @@ int main(int argc, char* argv[])
             char* content;
             Message* currentMessage = get(&messages, index);
             content = currentMessage->content;
+            author = currentMessage->author;
             printf("\x1B[%d;1H", index - firstMessage + 1);
             printf("\x1B[2K");
             printf("%s: %s", author, content);
