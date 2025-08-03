@@ -117,15 +117,14 @@ DWORD WINAPI handle_client_thread(LPVOID arg)
       printf(": ");
       printf("%.*s\n", iReturn, recvbuf);
 
-      /*int iSendResult = send(clientSocket, recvbuf, iReturn, 0);
-      if (iSendResult == SOCKET_ERROR) {
-         printf("send failed with error: %d\n", WSAGetLastError());
-         closesocket(clientSocket);
-         WSACleanup();
-         return 1;
-      }*/
-
       // broadcast message to every client
+      char broadcasted[DEFAULT_BUFLEN];
+      int usernameBuffer = 20;
+      memset(broadcasted, 0, DEFAULT_BUFLEN);
+      strcpy_s(broadcasted, usernameBuffer, username);
+      strcpy_s(broadcasted + usernameBuffer, DEFAULT_BUFLEN - usernameBuffer, recvbuf);
+
+      clientlist_broadcast(list, DEFAULT_BUFLEN, broadcasted);
    }
    
    // shutdown the connection since we're done
@@ -169,7 +168,7 @@ int main()
       return 1;
    }
 
-   ClientList clients;
+   ClientList clients = clientlist();
    announce("Now accepting a first client.");
    while (1)
    {

@@ -80,7 +80,7 @@ static SOCKET connect_to_server(addrinfo* result, char* username)
 DWORD WINAPI message_prompt_loop(LPVOID arg)
 {
    SOCKET connectSocket = (SOCKET)arg;
-   char txt[50];
+   char txt[DEFAULT_BUFLEN - 20];
    int iResult;
    do
    {
@@ -89,8 +89,7 @@ DWORD WINAPI message_prompt_loop(LPVOID arg)
       fgets(txt, sizeof(txt), stdin);
       printf("\x1B[1A"); // move up one line
       printf("\x1B[2K"); // clear line
-      iResult = send(connectSocket, txt, 50, 0);
-
+      iResult = send(connectSocket, txt, DEFAULT_BUFLEN - 20, 0);
    } while (iResult != 0);
    return 0;
 }
@@ -145,13 +144,12 @@ int main(int argc, char* argv[])
          char* author = (char*)malloc(20 * sizeof(char));
          if (author)
          {
-            //strcpy_s(author, 20, recvBuffer);
+            strcpy_s(author, 20, recvBuffer);
          }
-         char* content = (char*)malloc(300 * sizeof(char));
+         char* content = (char*)malloc(DEFAULT_BUFLEN - 20 * sizeof(char));
          if (content)
          {
-            //strcpy_s(content, 300, recvBuffer + 20);
-            strcpy_s(content, iResult, recvBuffer);
+            strcpy_s(content, iResult - 20, recvBuffer + 20);
          }
          Message* m = create_message(author, content);
          push(&messages, m);
@@ -163,17 +161,9 @@ int main(int argc, char* argv[])
          {
             char* content;
             Message* currentMessage = get(&messages, index);
-            if (currentMessage)
-            {
-               content = currentMessage->content;
-            }
-            else
-            {
-               content = "slt";
-            }
+            content = currentMessage->content;
             printf("\x1B[%d;1H", index - firstMessage + 1);
             printf("\x1B[2K");
-            char* author = "author";
             printf("%s: %s", author, content);
          }
          printf("\x1B[u");

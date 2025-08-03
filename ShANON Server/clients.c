@@ -43,3 +43,13 @@ void clientlist_push(ClientList* list, Client* client)
 {
    dynarray_push(&list->arr, (void*)client);
 }
+
+void clientlist_broadcast(ClientList* list, int sizeInBytes, char* payload)
+{
+   size_t len = list->arr.length;
+   for (size_t index = 0; index < len; ++index)
+   {
+      Client* current = clientlist_get(list, index);
+      send(current->socket, payload, sizeInBytes, 0);
+   }
+}

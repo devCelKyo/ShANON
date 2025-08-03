@@ -27,3 +27,5 @@ typedef struct ClientList
 ClientList clientlist();
 Client* clientlist_get(ClientList*, size_t);
 void clientlist_push(ClientList*, Client*);
+
+void clientlist_broadcast(ClientList*, int sizeInBytes, char* payload);
